@@ -57,10 +57,11 @@ class TBGSAM3ModelLoaderAndDownloader:
     @classmethod
     def INPUT_TYPES(cls):
         # List known local models from model_manager
-        # get_available_models() returns ["auto (download from HuggingFace)", <files...>]
-        available = get_available_models()
+        # Get available models from comfy api /models/sam3 returns ["<files...>]
+        available = folder_paths.get_filename_list("sam3")
         # Present clearer choices in UI
         model_sources = [
+            "auto (download from HuggingFace)",
             "auto (API to cache)",            # build default model (no fixed ckpt path)
             "local (auto-download)", # download sam3.pt into models/sam3 if missing
         ] + available[1:]           # additional discovered checkpoint files
