@@ -59,12 +59,13 @@ class TBGSAM3ModelLoaderAndDownloader:
         # List known local models from model_manager
         # Get available models from comfy api /models/sam3 returns ["<files...>]
         available = folder_paths.get_filename_list("sam3")
+        print(f"[TBGSAM3ModelLoaderAdvanced] Available local SAM3 models: {available}")
         # Present clearer choices in UI
         model_sources = [
             "auto (download from HuggingFace)",
             "auto (API to cache)",            # build default model (no fixed ckpt path)
             "local (auto-download)", # download sam3.pt into models/sam3 if missing
-        ] + available[1:]           # additional discovered checkpoint files
+        ] + available           # additional discovered checkpoint files
 
         return {
             "required": {
