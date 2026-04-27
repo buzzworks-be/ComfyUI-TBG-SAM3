@@ -94,7 +94,7 @@ class TBGSAM3ModelLoaderAndDownloader:
             print("[TBGSAM3ModelLoaderAdvanced] Using API/default SAM3 image model.")
             checkpoint_path = None
 
-        elif model_source == "local (auto-download)":
+        elif model_source in {"auto (download from HuggingFace)", "local (auto-download)"}:
             # Download only sam3.pt into models/sam3
             sam3_dir = download_sam3_model(hf_repo)     # returns models/sam3
             checkpoint_path = os.path.join(sam3_dir, "sam3.pt")
@@ -106,7 +106,11 @@ class TBGSAM3ModelLoaderAndDownloader:
 
         else:
             # Specific local checkpoint chosen from list under models/sam3
-            checkpoint_path = get_model_path(model_source)
+            # Prefer Comfy's indexed model paths (supports extra_model_paths.yaml),
+            # then fall back to custom manager resolution.
+            checkpoint_path = folder_paths.get_full_path("sam3", model_source)
+            if not checkpoint_path:
+                checkpoint_path = get_model_path(model_source)
             if not checkpoint_path or not os.path.isfile(checkpoint_path):
                 raise RuntimeError(
                     f"[TBGSAM3ModelLoaderAdvanced] Local model file not found: {model_source} -> {checkpoint_path}"

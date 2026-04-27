@@ -50,13 +50,23 @@ def get_model_path(model_name: str) -> Optional[str]:
     Get full path to model checkpoint
     Returns None for 'auto' (HuggingFace download)
     """
-    if model_name == "auto (download from HuggingFace)" or model_name == "auto":
+    if model_name in {
+        "auto (download from HuggingFace)",
+        "auto (API to cache)",
+        "local (auto-download)",
+        "auto",
+    }:
         return None
+
+    # Resolve through Comfy's registered model paths first (includes extra_model_paths.yaml).
+    model_path = folder_paths.get_full_path("sam3", model_name)
+    if model_path and os.path.isfile(model_path):
+        return model_path
 
     sam3_path = get_sam3_models_path()
     model_path = os.path.join(sam3_path, model_name)
 
-    if os.path.exists(model_path):
+    if os.path.isfile(model_path):
         return model_path
 
     return None
