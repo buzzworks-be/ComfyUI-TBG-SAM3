@@ -89,6 +89,47 @@ class TBGSAM3ModelLoaderAndDownloader:
         # Resolve checkpoint path if needed
         checkpoint_path = None
 
+        def _resolve_local_checkpoint(source: str):
+            # Normalize model selection strings coming from saved workflows/UI.
+            raw = str(source)
+            normalized = os.path.basename(raw.strip().strip('"').strip("'"))
+
+            candidates = []
+            for item in (raw, normalized):
+                if item and item not in candidates:
+                    candidates.append(item)
+
+            for candidate in candidates:
+                resolved = folder_paths.get_full_path("sam3", candidate)
+                if resolved and os.path.isfile(resolved):
+                    return resolved
+
+            # Fallback: search each registered sam3 root directly.
+            try:
+                sam3_roots = folder_paths.get_folder_paths("sam3")
+            except Exception:
+                sam3_roots = []
+
+            for root in sam3_roots:
+                for candidate in candidates:
+                    direct = os.path.join(root, candidate)
+                    if os.path.isfile(direct):
+                        return direct
+
+            # Final fallback: resolve by basename from discovered file list.
+            try:
+                available = folder_paths.get_filename_list("sam3")
+            except Exception:
+                available = []
+
+            for rel_name in available:
+                if os.path.basename(rel_name) == normalized:
+                    resolved = folder_paths.get_full_path("sam3", rel_name)
+                    if resolved and os.path.isfile(resolved):
+                        return resolved
+
+            return None
+
         if model_source == "auto (API to cache)":
             # Let builder construct its default weights / config
             print("[TBGSAM3ModelLoaderAdvanced] Using API/default SAM3 image model.")
@@ -108,12 +149,17 @@ class TBGSAM3ModelLoaderAndDownloader:
             # Specific local checkpoint chosen from list under models/sam3
             # Prefer Comfy's indexed model paths (supports extra_model_paths.yaml),
             # then fall back to custom manager resolution.
-            checkpoint_path = folder_paths.get_full_path("sam3", model_source)
+            checkpoint_path = _resolve_local_checkpoint(model_source)
             if not checkpoint_path:
                 checkpoint_path = get_model_path(model_source)
             if not checkpoint_path or not os.path.isfile(checkpoint_path):
+                try:
+                    sam3_roots = folder_paths.get_folder_paths("sam3")
+                except Exception:
+                    sam3_roots = []
                 raise RuntimeError(
-                    f"[TBGSAM3ModelLoaderAdvanced] Local model file not found: {model_source} -> {checkpoint_path}"
+                    f"[TBGSAM3ModelLoaderAdvanced] Local model file not found: {model_source!r} -> {checkpoint_path}. "
+                    f"sam3_roots={sam3_roots}"
                 )
             print(f"[TBGSAM3ModelLoaderAdvanced] Using selected local checkpoint: {checkpoint_path}")
 

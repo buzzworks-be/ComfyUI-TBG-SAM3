@@ -58,16 +58,49 @@ def get_model_path(model_name: str) -> Optional[str]:
     }:
         return None
 
+    raw_name = str(model_name)
+    normalized_name = os.path.basename(raw_name.strip().strip('"').strip("'"))
+
+    candidates = []
+    for item in (raw_name, normalized_name):
+        if item and item not in candidates:
+            candidates.append(item)
+
     # Resolve through Comfy's registered model paths first (includes extra_model_paths.yaml).
-    model_path = folder_paths.get_full_path("sam3", model_name)
-    if model_path and os.path.isfile(model_path):
-        return model_path
+    for candidate in candidates:
+        model_path = folder_paths.get_full_path("sam3", candidate)
+        if model_path and os.path.isfile(model_path):
+            return model_path
+
+    # Fallback: search each registered sam3 root directly.
+    try:
+        sam3_roots = folder_paths.get_folder_paths("sam3")
+    except Exception:
+        sam3_roots = []
+
+    for root in sam3_roots:
+        for candidate in candidates:
+            direct_path = os.path.join(root, candidate)
+            if os.path.isfile(direct_path):
+                return direct_path
+
+    # Final fallback: match by basename from discovered entries.
+    try:
+        available = folder_paths.get_filename_list("sam3")
+    except Exception:
+        available = []
+
+    for rel_name in available:
+        if os.path.basename(rel_name) == normalized_name:
+            model_path = folder_paths.get_full_path("sam3", rel_name)
+            if model_path and os.path.isfile(model_path):
+                return model_path
 
     sam3_path = get_sam3_models_path()
-    model_path = os.path.join(sam3_path, model_name)
-
-    if os.path.isfile(model_path):
-        return model_path
+    for candidate in candidates:
+        model_path = os.path.join(sam3_path, candidate)
+        if os.path.isfile(model_path):
+            return model_path
 
     return None
 
